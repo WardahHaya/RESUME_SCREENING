@@ -5,6 +5,11 @@ import pytesseract
 from PIL import Image
 import re
 from sklearn.feature_extraction.text import TfidfVectorizer
+import joblib
+
+# Load the trained model and vectorizer
+model = joblib.load('resume_classifier_model.pkl')
+vectorizer = joblib.load('vectorizer.pkl')
 
 # Dummy functions (replace these with your actual implementations)
 def clean_text(text):
@@ -20,8 +25,11 @@ def score_resume(text, vectorizer):
 def suggest_improvements(text):
     return ["Use a stronger action verb in the experience section.", "Reduce redundant phrases."]  # Replace with actual suggestions
 
-def model_predict(vectorized):
-    return ["Software Engineer"]  # Replace with your actual model prediction
+def model_predict(text, vectorizer, model):
+    cleaned_text = clean_text(text)
+    vectorized_text = vectorizer.transform([cleaned_text])
+    prediction = model.predict(vectorized_text)
+    return prediction[0]  # Return the predicted category
 
 # File handling and resume text extraction
 def extract_resume_text(file, filename):
@@ -61,9 +69,8 @@ def main():
                 # Save the extracted text in session state to be used in other pages
                 st.session_state.text = text
                 st.session_state.cleaned_text = clean_text(text)
-                st.session_state.vectorizer = TfidfVectorizer()
-                st.session_state.vectorizer.fit([st.session_state.cleaned_text])
-                st.session_state.vectorized = st.session_state.vectorizer.transform([st.session_state.cleaned_text])
+                st.session_state.vectorizer = vectorizer  # Use the pre-trained vectorizer
+                st.session_state.vectorized = vectorizer.transform([st.session_state.cleaned_text])
                 st.success("Resume uploaded and processed successfully! You can now go to the 'Summary & Analysis' page.")
             else:
                 st.error("Failed to extract text from the resume.")
@@ -78,7 +85,7 @@ def main():
 
             # Generating the summary, category, score, and suggestions
             summary = summarize_resume(resume_text)
-            category = model_predict(vectorized)[0]
+            category = model_predict(resume_text, vectorizer, model)  # Use the trained model
             score = f"{score_resume(cleaned_text, vectorizer)} / 100"
             improvements = "\n".join(suggest_improvements(cleaned_text))
 
