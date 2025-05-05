@@ -75,7 +75,7 @@ def suggest_improvements(text):
 st.set_page_config(page_title="💼 Resume Assistant", layout="wide", initial_sidebar_state="expanded")
 
 # Sidebar Navigation
-st.sidebar.title("Resume Assistant - Pages")
+st.sidebar.title("Functionalities")
 page = st.sidebar.selectbox("Choose a page", ["Home", "Generate Summary", "Suggest Improvements", "Predict Job Category", "Score Resume"])
 
 # Custom CSS for Colors and Layout
