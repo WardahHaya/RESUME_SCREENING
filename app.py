@@ -71,17 +71,15 @@ def suggest_improvements(text):
         suggestions.append("Add more details to strengthen your resume.")
     return suggestions or ["Resume looks good!"]
 
-# --- Streamlit UI --- 
+# --- Streamlit UI ---
 st.set_page_config(page_title="🤖 Resume Assistant", layout="centered")
 st.title("🤖 Resume Assistant")
 
-# File upload with file type restriction and instructions
 uploaded_file = st.file_uploader("Upload Resume (PDF, DOCX, or Image)", type=["pdf", "docx", "jpg", "jpeg", "png"])
 
 if uploaded_file:
     filename = uploaded_file.name
     content = extract_resume_text(uploaded_file, filename)
-    
     if not content.strip():
         st.error("Failed to extract any text. Try another file.")
     else:
@@ -93,44 +91,27 @@ if uploaded_file:
             vectorizer.fit([resume_data["cleaned"]])
         resume_data["vectorized"] = vectorizer.transform([resume_data["cleaned"]])
 
-        # Navigation with Radio Buttons
-        option = st.radio("Select an action:", ("Generate Summary", "Suggest Improvements", "Predict Job Category", "Score Resume"))
+        st.subheader("📄 Extracted Resume Text")
+        st.text_area("Text", value=resume_data["text"], height=200)
 
-        # Generate Summary Page
-        if option == "Generate Summary":
-            st.subheader("📄 Resume Summary")
-            summary = summarize_resume(resume_data["text"])
-            st.text_area("Summary", value=summary, height=200)
-            if st.button("Back"):
-                st.experimental_rerun()
+        # Options
+        st.subheader("🔧 Resume Analysis")
+        col1, col2 = st.columns(2)
 
-        # Suggest Improvements Page
-        elif option == "Suggest Improvements":
-            st.subheader("🛠️ Suggested Improvements")
-            improvements = suggest_improvements(resume_data["cleaned"])
-            for suggestion in improvements:
-                st.warning(f"• {suggestion}")
-            if st.button("Back"):
-                st.experimental_rerun()
+        with col1:
+            if st.button("📄 Generate Summary"):
+                st.info(summarize_resume(resume_data["text"]))
 
-        # Predict Job Category Page
-        elif option == "Predict Job Category":
-            st.subheader("🔍 Job Category Prediction")
-            category = model_predict(resume_data["vectorized"])
-            st.success(f"Predicted Job Category: {category}")
-            if st.button("Back"):
-                st.experimental_rerun()
+            if st.button("🛠️ Suggest Improvements"):
+                improvements = suggest_improvements(resume_data["cleaned"])
+                for suggestion in improvements:
+                    st.warning(f"• {suggestion}")
 
-        # Score Resume Page
-        elif option == "Score Resume":
-            st.subheader("📊 Resume Scoring")
-            score = score_resume(resume_data["cleaned"], vectorizer)
-            st.success(f"Resume Score: {score} / 100")
-            if st.button("Back"):
-                st.experimental_rerun()
+        with col2:
+            if st.button("🔍 Predict Job Category"):
+                category = model_predict(resume_data["vectorized"])
+                st.success(f"Predicted Job Category: {category}")
 
-# Instructions or additional tips for users
-st.markdown("""
-- Make sure your resume file is in PDF, DOCX, or Image format.
-- This tool extracts key information and helps you optimize your resume for job applications.
-""")
+            if st.button("📊 Score Resume"):
+                score = score_resume(resume_data["cleaned"], vectorizer)
+                st.success(f"Resume Score: {score} / 100")
