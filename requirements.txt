@@ -4,7 +4,6 @@ python-docx
 pytesseract
 Pillow
 scikit-learn
-PyMuPDF==1.19.6 
-pip freeze > requirements.txt
+PyMuPDF==25.1.1
 
 
