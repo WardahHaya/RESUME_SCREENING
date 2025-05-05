@@ -4,14 +4,11 @@ from docx import Document
 import pytesseract
 from PIL import Image
 import re
-import joblib
-
-# Load the pre-trained model and vectorizer
-model = joblib.load('resume_classifier_model.pkl')
-vectorizer = joblib.load('vectorizer.pkl')
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 # Global variables
 resume_data = {"text": "", "cleaned": "", "vectorized": None, "filename": ""}
+vectorizer = TfidfVectorizer()
 
 # Helper functions
 def clean_text(text):
@@ -40,24 +37,23 @@ def summarize_resume(text):
     summary_lines = [line.strip() for line in lines if any(k in line.lower() for k in keywords)]
     return "\n".join(summary_lines[:10]) if summary_lines else "Could not extract any meaningful summary."
 
-def model_predict(text):
-    # Clean and vectorize the resume text
-    cleaned_text = clean_text(text)
-    vectorized_text = vectorizer.transform([cleaned_text])
+def model_predict(vectorized):
+    text = resume_data["cleaned"]
+    if any(word in text for word in ["machine", "data", "analysis"]):
+        return "Data Scientist"
+    elif any(word in text for word in ["project", "lead", "timeline"]):
+        return "Project Manager"
+    else:
+        return "Software Engineer"
 
-    # Predict the job category using the pre-trained model
-    category = model.predict(vectorized_text)[0]
-    return category
-
-def score_resume(text):
-    # Score the resume based on how well the keywords match the predicted category
-    category = model_predict(text)
+def score_resume(text, vectorizer):
     category_keywords = {
         "Software Engineer": ["python", "java", "c++", "software", "api", "backend", "frontend"],
         "Data Scientist": ["python", "machine learning", "data", "model", "pandas", "numpy"],
         "Project Manager": ["project", "budget", "timeline", "agile", "scrum", "lead"]
     }
 
+    category = model_predict(vectorizer.transform([text]))
     keywords = category_keywords.get(category, [])
     matched_keywords = sum(1 for word in keywords if word in text.lower())
     score = (matched_keywords / len(keywords)) * 100 if keywords else 50
@@ -111,7 +107,10 @@ if uploaded_file:
         resume_data["text"] = content
         resume_data["cleaned"] = clean_text(content)
 
-        # Display extracted text
+        if not hasattr(vectorizer, 'vocabulary_'):
+            vectorizer.fit([resume_data["cleaned"]])
+        resume_data["vectorized"] = vectorizer.transform([resume_data["cleaned"]])
+
         st.subheader("📄 Extracted Resume Text")
         st.text_area("Text", value=resume_data["text"], height=200)
 
@@ -130,11 +129,11 @@ if uploaded_file:
 
         with col2:
             if st.button("🔍 Predict Job Category", use_container_width=True):
-                category = model_predict(resume_data["text"])
+                category = model_predict(resume_data["vectorized"])
                 st.success(f"Predicted Job Category: {category}")
 
             if st.button("📊 Score Resume", use_container_width=True):
-                score = score_resume(resume_data["text"])
+                score = score_resume(resume_data["cleaned"], vectorizer)
                 st.success(f"Resume Score: {score} / 100")
 
 # Add a custom footer
