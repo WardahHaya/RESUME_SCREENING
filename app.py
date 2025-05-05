@@ -72,8 +72,8 @@ def suggest_improvements(text):
     return suggestions or ["Resume looks good!"]
 
 # --- Streamlit UI ---
-st.set_page_config(page_title="🤖 Resume Assistant", layout="centered")
-st.title("🤖 Resume Assistant")
+st.set_page_config(page_title=" Resume Assistant", layout="centered")
+st.title(" Resume Assistant")
 
 uploaded_file = st.file_uploader("Upload Resume (PDF, DOCX, or Image)", type=["pdf", "docx", "jpg", "jpeg", "png"])
 
@@ -91,27 +91,27 @@ if uploaded_file:
             vectorizer.fit([resume_data["cleaned"]])
         resume_data["vectorized"] = vectorizer.transform([resume_data["cleaned"]])
 
-        st.subheader("📄 Extracted Resume Text")
+        st.subheader(" Extracted Resume Text")
         st.text_area("Text", value=resume_data["text"], height=200)
 
         # Options
-        st.subheader("🔧 Resume Analysis")
+        st.subheader(" Resume Analysis")
         col1, col2 = st.columns(2)
 
         with col1:
-            if st.button("📄 Generate Summary"):
+            if st.button(" Generate Summary"):
                 st.info(summarize_resume(resume_data["text"]))
 
-            if st.button("🛠️ Suggest Improvements"):
+            if st.button("🛠 Suggest Improvements"):
                 improvements = suggest_improvements(resume_data["cleaned"])
                 for suggestion in improvements:
                     st.warning(f"• {suggestion}")
 
         with col2:
-            if st.button("🔍 Predict Job Category"):
+            if st.button(" Predict Job Category"):
                 category = model_predict(resume_data["vectorized"])
                 st.success(f"Predicted Job Category: {category}")
 
-            if st.button("📊 Score Resume"):
+            if st.button(" Score Resume"):
                 score = score_resume(resume_data["cleaned"], vectorizer)
                 st.success(f"Resume Score: {score} / 100")
