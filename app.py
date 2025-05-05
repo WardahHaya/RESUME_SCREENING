@@ -12,16 +12,16 @@ def clean_text(text):
     return cleaned_text
 
 def summarize_resume(text):
-    return "This is a summary of the resume."
+    return "This is a summary of the resume."  # Replace with your summarization logic
 
 def score_resume(text, vectorizer):
-    return 80  # Placeholder score
+    return 80  # Placeholder score, replace with your actual scoring method
 
 def suggest_improvements(text):
-    return ["Use a stronger action verb in the experience section.", "Reduce redundant phrases."]
+    return ["Use a stronger action verb in the experience section.", "Reduce redundant phrases."]  # Replace with actual suggestions
 
 def model_predict(vectorized):
-    return ["Software Engineer"]  # Placeholder category
+    return ["Software Engineer"]  # Replace with your actual model prediction
 
 # File handling and resume text extraction
 def extract_resume_text(file, filename):
@@ -46,33 +46,56 @@ def extract_resume_text(file, filename):
         return f"Error extracting text: {str(e)}"
 
 # Streamlit app code
-st.title("Resume Assistant")
+def main():
+    st.title("Resume Assistant")
 
-file = st.file_uploader("Upload Resume (PDF, DOCX, or Image)", type=["pdf", "docx", "jpg", "png"])
+    # Sidebar navigation
+    page = st.sidebar.radio("Select a page", ["Upload Resume", "Summary & Analysis"])
 
-if file:
-    text = extract_resume_text(file, file.name)
-    if text:
-        cleaned_text = clean_text(text)
-        vectorizer = TfidfVectorizer()
-        vectorizer.fit([cleaned_text])
-        vectorized = vectorizer.transform([cleaned_text])
+    if page == "Upload Resume":
+        file = st.file_uploader("Upload Resume (PDF, DOCX, or Image)", type=["pdf", "docx", "jpg", "png"])
 
-        summary = summarize_resume(text)
-        category = model_predict(vectorized)[0]
-        score = f"{score_resume(cleaned_text, vectorizer)} / 100"
-        improvements = "\n".join(suggest_improvements(cleaned_text))
+        if file:
+            text = extract_resume_text(file, file.name)
+            if text:
+                # Save the extracted text in session state to be used in other pages
+                st.session_state.text = text
+                st.session_state.cleaned_text = clean_text(text)
+                st.session_state.vectorizer = TfidfVectorizer()
+                st.session_state.vectorizer.fit([st.session_state.cleaned_text])
+                st.session_state.vectorized = st.session_state.vectorizer.transform([st.session_state.cleaned_text])
+                st.success("Resume uploaded and processed successfully! You can now go to the 'Summary & Analysis' page.")
+            else:
+                st.error("Failed to extract text from the resume.")
+    
+    elif page == "Summary & Analysis":
+        # Ensure the user uploaded a resume first
+        if 'text' in st.session_state:
+            resume_text = st.session_state.text
+            cleaned_text = st.session_state.cleaned_text
+            vectorized = st.session_state.vectorized
+            vectorizer = st.session_state.vectorizer
 
-        st.subheader("Resume Summary:")
-        st.write(summary)
+            # Generating the summary, category, score, and suggestions
+            summary = summarize_resume(resume_text)
+            category = model_predict(vectorized)[0]
+            score = f"{score_resume(cleaned_text, vectorizer)} / 100"
+            improvements = "\n".join(suggest_improvements(cleaned_text))
 
-        st.subheader("Job Category:")
-        st.write(category)
+            st.subheader("Resume Summary:")
+            st.write(summary)
 
-        st.subheader("Resume Score:")
-        st.write(score)
+            st.subheader("Job Category:")
+            st.write(category)
 
-        st.subheader("Suggestions for Improvement:")
-        st.write(improvements)
-    else:
-        st.error("Failed to extract text from the resume.")
+            st.subheader("Resume Score:")
+            st.write(score)
+
+            st.subheader("Suggestions for Improvement:")
+            st.write(improvements)
+
+        else:
+            st.warning("Please upload a resume first on the 'Upload Resume' page.")
+
+if __name__ == '__main__':
+    main()
