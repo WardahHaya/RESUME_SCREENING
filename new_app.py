@@ -62,13 +62,24 @@ def model_predict(vectorized):
     else:
         return "Software Engineer"
 
-def score_resume(text):
+def score_resume(text, vectorizer):
     category_keywords = {
         "Software Engineer": ["python", "java", "c++", "software", "api", "backend", "frontend"],
         "Data Scientist": ["python", "machine learning", "data", "model", "pandas", "numpy"],
         "Project Manager": ["project", "budget", "timeline", "agile", "scrum", "lead"]
     }
-    category = model_predict(vectorizer.transform([text]))
+
+    # Ensure vectorizer is fitted before transforming
+    if not hasattr(vectorizer, 'vocabulary_'):
+        vectorizer.fit([text])  # Fit it on the resume text
+
+    # Transform the resume text to vectorized form
+    transformed_text = vectorizer.transform([text])
+
+    # Predict category using the transformed vector
+    category = model_predict(transformed_text)
+    
+    # Find the category's keywords and calculate the score
     keywords = category_keywords.get(category, [])
     matched_keywords = sum(1 for word in keywords if word in text.lower())
     score = (matched_keywords / len(keywords)) * 100 if keywords else 50
@@ -96,27 +107,29 @@ def logout():
 st.markdown("""
     <style>
         body {
-            background-color: #87CEEB;  /* Sky Blue Background */
-            font-family: 'Arial', sans-serif;
+            background-color: #87CEEB;  /* Sky Blue background */
+            font-family: 'Arial';
         }
         .main, .block-container {
-            background-color: #ffffff;
+            background-color: #e0f7fa;  /* Light cyan background */
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
         h1, h2, h3, h4 {
-            color: #004d40;
+            color: #004d40;  /* Dark teal color */
         }
         .stButton>button {
-            background-color: #00695c;
+            background-color: #00695c;  /* Dark teal for buttons */
             color: white;
             font-size: 16px;
-            padding: 10px 20px;
+            padding: 8px 20px;
             border-radius: 8px;
         }
+        .stTextInput input {
+            background-color: #ffffff;  /* White background for input fields */
+        }
         .stTextArea textarea {
-            background-color: #f1f1f1;
+            background-color: #ffffff;  /* White background for text areas */
         }
     </style>
 """, unsafe_allow_html=True)
@@ -166,9 +179,6 @@ elif st.session_state['authenticated'] and st.session_state['page'] == 'upload':
             st.session_state['resume_data']['vectorized'] = vectorizer.transform([st.session_state['resume_data']['cleaned']])
             st.session_state['resume_uploaded'] = True
             st.session_state['page'] = 'features'
-            st.success("Resume uploaded successfully!")
-
-    if st.session_state['resume_uploaded']:
         if st.button("Next"):
             st.session_state['page'] = 'features'
 
@@ -209,10 +219,9 @@ elif st.session_state['page'] == 'prediction':
 elif st.session_state['page'] == 'score':
     st.title("Resume Score")
     st.text_area("Resume Text", value=st.session_state['resume_data']['text'], height=200)
-    score = score_resume(st.session_state['resume_data']['cleaned'])
-    st.success(f"Resume Score: {score} / 100")
+    st.success(f"Resume Score: {score_resume(st.session_state['resume_data']['cleaned'], vectorizer)} / 100")
     if st.button("Back to Features"):
-        st.session_state['page'] = 'features'
+        st.session_state['page'] = 'features'  
 
 else:
     st.warning("Something went wrong. Please log in again.")
