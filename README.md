@@ -33,8 +33,6 @@ An intelligent resume screening web application that leverages Natural Language 
 
 **Deployment:**  
 - Streamlit Cloud  
-- Heroku  
-- Docker (optional)
 
 ---
 
