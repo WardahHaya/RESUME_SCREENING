@@ -6,14 +6,58 @@ from PIL import Image
 import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-# Global variables
-resume_data = {"text": "", "cleaned": "", "vectorized": None, "filename": ""}
-vectorizer = TfidfVectorizer()
+# Set Streamlit config
+st.set_page_config(page_title="💼 Resume Assistant", layout="wide")
 
-# Helper functions (same as before)
+# Style
+st.markdown("""
+    <style>
+    body {
+        background-color: #f0f2f6;
+    }
+    .title {
+        color: #003366;
+        font-size: 40px;
+        font-weight: bold;
+    }
+    .button-style > button {
+        background-color: #0077b6;
+        color: white;
+        font-size: 18px;
+        padding: 10px 20px;
+        border-radius: 8px;
+        border: none;
+        margin: 10px;
+    }
+    .button-style > button:hover {
+        background-color: #023e8a;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Session Initialization
+if "users" not in st.session_state:
+    st.session_state.users = {}
+
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if "logged_in_user" not in st.session_state:
+    st.session_state.logged_in_user = None
+
+if "page" not in st.session_state:
+    st.session_state.page = "login"
+
+if "resume_data" not in st.session_state:
+    st.session_state.resume_data = {"text": "", "cleaned": "", "vectorized": None, "filename": ""}
+
+if "vectorizer" not in st.session_state:
+    st.session_state.vectorizer = TfidfVectorizer()
+
+
+# Helper functions
 def clean_text(text):
-    cleaned_text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
-    return cleaned_text.lower()
+    return re.sub(r'[^a-zA-Z0-9\s]', '', text).lower()
 
 def extract_resume_text(file, filename):
     try:
@@ -38,7 +82,7 @@ def summarize_resume(text):
     return "\n".join(summary_lines[:10]) if summary_lines else "Could not extract any meaningful summary."
 
 def model_predict(vectorized):
-    text = resume_data["cleaned"]
+    text = st.session_state.resume_data["cleaned"]
     if any(word in text for word in ["machine", "data", "analysis"]):
         return "Data Scientist"
     elif any(word in text for word in ["project", "lead", "timeline"]):
@@ -52,11 +96,10 @@ def score_resume(text, vectorizer):
         "Data Scientist": ["python", "machine learning", "data", "model", "pandas", "numpy"],
         "Project Manager": ["project", "budget", "timeline", "agile", "scrum", "lead"]
     }
-
     category = model_predict(vectorizer.transform([text]))
     keywords = category_keywords.get(category, [])
-    matched_keywords = sum(1 for word in keywords if word in text.lower())
-    score = (matched_keywords / len(keywords)) * 100 if keywords else 50
+    matched = sum(1 for word in keywords if word in text.lower())
+    score = (matched / len(keywords)) * 100 if keywords else 50
     return int(score)
 
 def suggest_improvements(text):
@@ -71,82 +114,44 @@ def suggest_improvements(text):
         suggestions.append("Add more details to strengthen your resume.")
     return suggestions or ["Resume looks good!"]
 
-# --- Streamlit UI ---
-st.set_page_config(page_title="💼 Resume Assistant", layout="wide", initial_sidebar_state="expanded")
+# Login / Sign-up Page
+def login_page():
+    st.title("🔐 Login to Resume Assistant")
+    action = st.radio("Choose Action", ["Login", "Sign Up"])
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
 
-# Custom CSS for Colors and Layout
-st.markdown("""
-    <style>
-    .stButton>button {
-        background-color: #4CAF50;
-        color: white;
-        padding: 10px;
-        font-size: 16px;
-        border-radius: 5px;
-        border: none;
-    }
-    .stButton>button:hover {
-        background-color: #45a049;
-    }
-    .stTextArea>textarea {
-        background-color: #f0f8ff;
-        color: #333;
-    }
-    .stAlert {
-        background-color: #ffcccc;
-        color: #e60000;
-    }
-    .stSuccess {
-        background-color: #d4edda;
-        color: #155724;
-    }
-    .stWarning {
-        background-color: #fff3cd;
-        color: #856404;
-    }
-    body {
-        font-family: 'Arial', sans-serif;
-        background-color: #f4f4f9;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# Login/Sign Up system
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
-
-if not st.session_state.logged_in:
-    option = st.sidebar.selectbox("Choose an option", ["Login", "Sign Up"])
-
-    if option == "Login":
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        
-        if st.button("Login"):
-            # Check login info here, for now using static values
-            if username == "user" and password == "password":
+    if st.button("Submit"):
+        if action == "Login":
+            if username in st.session_state.users and st.session_state.users[username] == password:
                 st.session_state.logged_in = True
-                st.session_state.username = username
-                st.success("Login successful!")
-                st.session_state.page = "Home"  # Set default page after login
+                st.session_state.logged_in_user = username
+                st.session_state.page = "home"
+                st.success(f"Welcome back, {username}!")
             else:
-                st.error("Invalid credentials")
+                st.error("Invalid username or password.")
+        else:
+            if username in st.session_state.users:
+                st.error("Username already exists.")
+            else:
+                st.session_state.users[username] = password
+                st.session_state.logged_in = True
+                st.session_state.logged_in_user = username
+                st.session_state.page = "home"
+                st.success("Account created!")
 
-    elif option == "Sign Up":
-        new_username = st.text_input("New Username")
-        new_password = st.text_input("New Password", type="password")
-        if st.button("Create Account"):
-            st.session_state.logged_in = True
-            st.session_state.username = new_username
-            st.success(f"Account created for {new_username}!")
-            st.session_state.page = "Home"  # Set default page after sign-up
+# Home Page
+def home_page():
+    st.markdown("<div class='title'>💼 Resume Assistant</div>", unsafe_allow_html=True)
+    st.markdown(f"👋 Hello, **{st.session_state.logged_in_user}**!")
+    
+    if st.button("🚪 Log Out"):
+        st.session_state.logged_in = False
+        st.session_state.logged_in_user = None
+        st.session_state.page = "login"
+        return
 
-else:
-    # Logged In
-    st.sidebar.title(f"Welcome {st.session_state.username}")
-    page = st.sidebar.selectbox("Choose a page", ["Home", "Generate Summary", "Suggest Improvements", "Predict Job Category", "Score Resume"], index=["Home", "Generate Summary", "Suggest Improvements", "Predict Job Category", "Score Resume"].index(st.session_state.page))
-
-    uploaded_file = st.file_uploader("Upload Resume (PDF, DOCX, or Image)", type=["pdf", "docx", "jpg", "jpeg", "png"])
+    uploaded_file = st.file_uploader("📁 Upload Resume (PDF, DOCX, or Image)", type=["pdf", "docx", "jpg", "jpeg", "png"])
 
     if uploaded_file:
         filename = uploaded_file.name
@@ -154,58 +159,65 @@ else:
         if not content.strip():
             st.error("Failed to extract any text. Try another file.")
         else:
-            resume_data["text"] = content
-            resume_data["cleaned"] = clean_text(content)
+            st.session_state.resume_data["text"] = content
+            st.session_state.resume_data["cleaned"] = clean_text(content)
+            if not hasattr(st.session_state.vectorizer, 'vocabulary_'):
+                st.session_state.vectorizer.fit([st.session_state.resume_data["cleaned"]])
+            st.session_state.resume_data["vectorized"] = st.session_state.vectorizer.transform([st.session_state.resume_data["cleaned"]])
 
-            if not hasattr(vectorizer, 'vocabulary_'):
-                vectorizer.fit([resume_data["cleaned"]])
-            resume_data["vectorized"] = vectorizer.transform([resume_data["cleaned"]])
+            st.markdown("### Choose an Action:")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("📄 Generate Summary"):
+                    st.session_state.page = "summary"
+            with col2:
+                if st.button("🛠 Suggest Improvements"):
+                    st.session_state.page = "improve"
 
-            # Page-wise Content
-            if page == "Home":
-                st.title("Welcome to the Resume Assistant")
-                st.markdown("""
-                    This tool helps you analyze and improve your resume. Upload your resume file (PDF, DOCX, or image format) and explore the following features:
-                    - **Generate Resume Summary**
-                    - **Suggest Resume Improvements**
-                    - **Predict Job Category**
-                    - **Score Resume Based on Keywords**
-                """)
+            col3, col4 = st.columns(2)
+            with col3:
+                if st.button("🔍 Predict Job Category"):
+                    st.session_state.page = "predict"
+            with col4:
+                if st.button("📊 Score Resume"):
+                    st.session_state.page = "score"
 
-            elif page == "Generate Summary":
-                st.title("📄 Generate Resume Summary")
-                st.text_area("Extracted Text", value=resume_data["text"], height=200)
-                summary = summarize_resume(resume_data["text"])
-                st.info(summary)
-                if st.button("Back to Home"):
-                    st.session_state.page = "Home"
+# Feature Pages
+def feature_page(title, body_fn):
+    st.title(title)
+    st.markdown(f"👤 Logged in as: **{st.session_state.logged_in_user}**")
+    st.text_area("Resume Content", value=st.session_state.resume_data["text"], height=200)
+    body_fn()
+    if st.button("⬅️ Back to Home"):
+        st.session_state.page = "home"
 
-            elif page == "Suggest Improvements":
-                st.title("🛠 Suggest Improvements")
-                st.text_area("Extracted Text", value=resume_data["text"], height=200)
-                improvements = suggest_improvements(resume_data["cleaned"])
-                for suggestion in improvements:
-                    st.warning(f"• {suggestion}")
-                if st.button("Back to Home"):
-                    st.session_state.page = "Home"
+def summary_body():
+    summary = summarize_resume(st.session_state.resume_data["text"])
+    st.info(summary)
 
-            elif page == "Predict Job Category":
-                st.title("🔍 Predict Job Category")
-                st.text_area("Extracted Text", value=resume_data["text"], height=200)
-                category = model_predict(resume_data["vectorized"])
-                st.success(f"Predicted Job Category: {category}")
-                if st.button("Back to Home"):
-                    st.session_state.page = "Home"
+def improvement_body():
+    suggestions = suggest_improvements(st.session_state.resume_data["cleaned"])
+    for s in suggestions:
+        st.warning(f"• {s}")
 
-            elif page == "Score Resume":
-                st.title("📊 Score Resume")
-                st.text_area("Extracted Text", value=resume_data["text"], height=200)
-                score = score_resume(resume_data["cleaned"], vectorizer)
-                st.success(f"Resume Score: {score} / 100")
-                if st.button("Back to Home"):
-                    st.session_state.page = "Home"
+def predict_body():
+    category = model_predict(st.session_state.resume_data["vectorized"])
+    st.success(f"Predicted Job Category: {category}")
 
-    if st.button("Log Out"):
-        st.session_state.logged_in = False
-        st.session_state.page = "Home"  # Reset page after logout
-        st.experimental_rerun()
+def score_body():
+    score = score_resume(st.session_state.resume_data["cleaned"], st.session_state.vectorizer)
+    st.success(f"Resume Score: {score} / 100")
+
+# Navigation
+if not st.session_state.logged_in:
+    login_page()
+elif st.session_state.page == "home":
+    home_page()
+elif st.session_state.page == "summary":
+    feature_page("📄 Resume Summary", summary_body)
+elif st.session_state.page == "improve":
+    feature_page("🛠 Resume Improvements", improvement_body)
+elif st.session_state.page == "predict":
+    feature_page("🔍 Job Category Prediction", predict_body)
+elif st.session_state.page == "score":
+    feature_page("📊 Resume Scoring", score_body)
