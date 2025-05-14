@@ -1,4 +1,4 @@
-# RESUME_SCREENING# Smart Resume Screener
+# RESUME_SCREENING Smart Resume Screener
 
 An intelligent resume screening web application that leverages Natural Language Processing (NLP) to analyze, categorize, and improve resumes. Built with Streamlit and integrated with BERT using MindSpore, this tool streamlines the candidate evaluation process for recruiters and offers constructive feedback for job seekers.
 
@@ -34,10 +34,6 @@ An intelligent resume screening web application that leverages Natural Language 
 **Deployment:**  
 - Streamlit Cloud  
 
----
-
-## 🚀 Getting Started
-
 ### Prerequisites
 
 Make sure you have the following installed:
@@ -45,9 +41,7 @@ Make sure you have the following installed:
 - Python 3.8 or higher
 - pip
 
-### Installation
-
-1. **Clone the repository**
+**Clone the repository**
 
 ```bash
 git clone https://github.com/your-username/smart-resume-screener.git
