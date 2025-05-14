@@ -95,7 +95,7 @@ def logout():
 st.markdown("""
     <style>
         body {
-            background-color: #e0f7fa;
+            background-color: #87CEEB;  /* Sky Blue Background */
             font-family: 'Arial', sans-serif;
         }
         .main, .block-container {
@@ -165,6 +165,11 @@ elif st.session_state['authenticated'] and st.session_state['page'] == 'upload':
             st.session_state['resume_data']['vectorized'] = vectorizer.transform([st.session_state['resume_data']['cleaned']])
             st.session_state['resume_uploaded'] = True
             st.session_state['page'] = 'features'
+            st.success("Resume uploaded successfully!")
+
+    if st.session_state['resume_uploaded']:
+        if st.button("Next"):
+            st.session_state['page'] = 'features'
 
 elif st.session_state['authenticated'] and st.session_state['page'] == 'features':
     st.title("Resume Analysis Options")
@@ -203,9 +208,10 @@ elif st.session_state['page'] == 'prediction':
 elif st.session_state['page'] == 'score':
     st.title("Resume Score")
     st.text_area("Resume Text", value=st.session_state['resume_data']['text'], height=200)
-    st.success(f"Resume Score: {score_resume(st.session_state['resume_data']['cleaned'])} / 100")
+    score = score_resume(st.session_state['resume_data']['cleaned'])
+    st.success(f"Resume Score: {score} / 100")
     if st.button("Back to Features"):
-        st.session_state['page'] = 'features'  
+        st.session_state['page'] = 'features'
 
 else:
     st.warning("Something went wrong. Please log in again.")
