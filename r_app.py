@@ -126,8 +126,9 @@ if not st.session_state.logged_in:
             # Check login info here, for now using static values
             if username == "user" and password == "password":
                 st.session_state.logged_in = True
+                st.session_state.username = username
                 st.success("Login successful!")
-                st.experimental_rerun()
+                st.session_state.page = "Home"  # Set default page after login
             else:
                 st.error("Invalid credentials")
 
@@ -138,12 +139,12 @@ if not st.session_state.logged_in:
             st.session_state.logged_in = True
             st.session_state.username = new_username
             st.success(f"Account created for {new_username}!")
-            st.experimental_rerun()
+            st.session_state.page = "Home"  # Set default page after sign-up
 
 else:
     # Logged In
     st.sidebar.title(f"Welcome {st.session_state.username}")
-    page = st.sidebar.selectbox("Choose a page", ["Home", "Generate Summary", "Suggest Improvements", "Predict Job Category", "Score Resume"])
+    page = st.sidebar.selectbox("Choose a page", ["Home", "Generate Summary", "Suggest Improvements", "Predict Job Category", "Score Resume"], index=["Home", "Generate Summary", "Suggest Improvements", "Predict Job Category", "Score Resume"].index(st.session_state.page))
 
     uploaded_file = st.file_uploader("Upload Resume (PDF, DOCX, or Image)", type=["pdf", "docx", "jpg", "jpeg", "png"])
 
@@ -177,7 +178,7 @@ else:
                 summary = summarize_resume(resume_data["text"])
                 st.info(summary)
                 if st.button("Back to Home"):
-                    st.experimental_rerun()
+                    st.session_state.page = "Home"
 
             elif page == "Suggest Improvements":
                 st.title("🛠 Suggest Improvements")
@@ -186,7 +187,7 @@ else:
                 for suggestion in improvements:
                     st.warning(f"• {suggestion}")
                 if st.button("Back to Home"):
-                    st.experimental_rerun()
+                    st.session_state.page = "Home"
 
             elif page == "Predict Job Category":
                 st.title("🔍 Predict Job Category")
@@ -194,7 +195,7 @@ else:
                 category = model_predict(resume_data["vectorized"])
                 st.success(f"Predicted Job Category: {category}")
                 if st.button("Back to Home"):
-                    st.experimental_rerun()
+                    st.session_state.page = "Home"
 
             elif page == "Score Resume":
                 st.title("📊 Score Resume")
@@ -202,8 +203,9 @@ else:
                 score = score_resume(resume_data["cleaned"], vectorizer)
                 st.success(f"Resume Score: {score} / 100")
                 if st.button("Back to Home"):
-                    st.experimental_rerun()
+                    st.session_state.page = "Home"
 
     if st.button("Log Out"):
         st.session_state.logged_in = False
+        st.session_state.page = "Home"  # Reset page after logout
         st.experimental_rerun()
